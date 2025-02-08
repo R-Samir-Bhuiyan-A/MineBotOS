@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AFK Bot Plugin Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+    <style>
+        /* Dark theme colors */
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --primary-color: #00c9a7;
+            --secondary-color: #007d6b;
+            --border-color: #333;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-color);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        pre {
+            background: #282c34;
+            border-radius: 5px;
+            padding: 10px;
+            overflow-x: auto;
+        }
+
+        button {
+            background: var(--primary-color);
+            color: var(--text-color);
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--secondary-color);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+</head>
+<body>
+
+<header>
+    AFK Bot Plugin Documentation
+</header>
+
+<div class="container">
+    <!-- Overview -->
+    <div class="card">
+        <div class="section-title">Overview</div>
+        <p>The AFK Bot allows you to create and manage automated Minecraft bots with plugin support.</p>
+    </div>
+
+    <!-- Getting Started -->
+    <div class="card">
+        <div class="section-title">Getting Started</div>
+        <p>To install dependencies, run:</p>
+        <pre><code class="language-bash">npm install mineflayer express socket.io fs path</code></pre>
+    </div>
+
+    <!-- Plugin Structure -->
+    <div class="card">
+        <div class="section-title">Plugin Structure</div>
+        <p>A plugin must have a folder inside the <code>/plugins</code> directory with:</p>
+        <ul>
+            <li><code>plugin.json</code> - Metadata</li>
+            <li><code>index.js</code> - Main logic</li>
+        </ul>
+    </div>
+
+    <!-- Example Plugin -->
+    <div class="card">
+        <div class="section-title">Example Plugin</div>
+        <p>Here's a simple plugin that sends a message when the bot joins:</p>
+        <pre><code class="language-javascript">module.exports.init = (bot) => {
+    bot.on('spawn', () => {
+        bot.chat("Hello! I am an AFK bot.");
+    });
+};</code></pre>
+    </div>
+
+    <!-- Plugin Installation -->
+    <div class="card">
+        <div class="section-title">Installing a Plugin</div>
+        <p>To install a plugin, place it in the <code>/plugins</code> directory and add it to the bot config:</p>
+        <pre><code class="language-json">{
+    "username": "Bot1",
+    "server": "your.server.ip",
+    "port": 25565,
+    "version": "1.20.1",
+    "enabledPlugins": ["yourPlugin"]
+}</code></pre>
+    </div>
+
+    <!-- API Endpoints -->
+    <div class="card">
+        <div class="section-title">API Endpoints</div>
+        <p>Start a bot using:</p>
+        <pre><code class="language-bash">curl -X POST http://localhost:3001/api/bots/start -H "Content-Type: application/json" -d '{"username":"Bot1"}'</code></pre>
+        <p>Stop a bot:</p>
+        <pre><code class="language-bash">curl -X POST http://localhost:3001/api/bots/stop -H "Content-Type: application/json" -d '{"username":"Bot1"}'</code></pre>
+    </div>
+
+    <!-- Interactive Demo -->
+    <div class="card">
+        <div class="section-title">Try It</div>
+        <button onclick="alert('Bot Started!')">Start Bot</button>
+        <button onclick="alert('Bot Stopped!')">Stop Bot</button>
+    </div>
+</div>
+
+</body>
+</html>

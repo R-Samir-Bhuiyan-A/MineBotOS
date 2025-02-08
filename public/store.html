@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugin Store</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #121212;
+      color: #fff;
+    }
+    .card {
+      background-color: #1e1e1e;
+      border: none;
+    }
+    .animation-fade {
+      opacity: 0;
+      animation: fadeIn 1s forwards;
+    }
+    @keyframes fadeIn {
+      100% { opacity: 1; }
+    }
+    .search-box {
+      width: 100%;
+      margin: 20px 0;
+    }
+    .btn-primary {
+      background-color: #6200ea;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12 text-center">
+        <h1 class="my-4">Plugin Store</h1>
+        <div class="search-box">
+          <input id="searchInput" class="form-control" type="text" placeholder="Search plugins..." oninput="searchPlugins()" />
+        </div>
+        <button class="btn btn-primary" onclick="fetchPlugins()">Fetch Plugins</button>
+        <button class="btn btn-secondary mt-3" onclick="reloadPlugins()">Reload Plugins</button>
+      </div>
+    </div>
+    <div class="row" id="pluginList">
+      <!-- Plugin cards will be dynamically added here -->
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios@0.27.2/dist/axios.min.js"></script>
+  <script>
+    let plugins = [];
+
+    // Fetch Plugins & Installed Plugins
+    async function fetchPlugins() {
+      try {
+        const response = await axios.get('/api/plugin-list');
+        console.log("API Response:", response.data); // Debugging API response
+
+        // Handle both object & array responses
+        let pluginsData;
+        if (Array.isArray(response.data)) {
+          pluginsData = response.data; // Directly use array
+        } else if (response.data && Array.isArray(response.data.plugins)) {
+          pluginsData = response.data.plugins; // Extract from object
+        } else {
+          throw new Error("Invalid API response: Expected an array or object with 'plugins' key.");
+        }
+
+        // Fetch Installed Plugins
+        const installedResponse = await axios.get('/api/plugins/installed');
+        const installedPlugins = installedResponse.data || [];
+
+        // Create Map of Installed Plugins (pluginId → folder)
+        const installedPluginMap = new Map(installedPlugins.map(p => [p.pluginId, p.folder]));
+
+        // Update plugins list with install status
+        plugins = pluginsData.map(plugin => ({
+          ...plugin,
+          installed: installedPluginMap.has(plugin.pluginId),
+          installedFolder: installedPluginMap.get(plugin.pluginId) || ''
+        }));
+
+        displayPlugins(plugins);
+      } catch (error) {
+        console.error("Error fetching plugins: ", error);
+      }
+    }
+
+    // Reload Plugins from API
+    async function reloadPlugins() {
+      try {
+        await axios.post('/api/plugins/reload');
+        fetchPlugins(); // Refresh plugins
+      } catch (error) {
+        console.error("Error reloading plugins: ", error);
+      }
+    }
+
+    // Search Plugins
+    function searchPlugins() {
+      const query = document.getElementById("searchInput").value.toLowerCase();
+      const filteredPlugins = plugins.filter(plugin =>
+        plugin.pluginName.toLowerCase().includes(query) || plugin.pluginDescription.toLowerCase().includes(query)
+      );
+      displayPlugins(filteredPlugins);
+    }
+
+    // Display Plugins in UI
+    function displayPlugins(pluginData) {
+      const pluginList = document.getElementById("pluginList");
+      pluginList.innerHTML = ''; // Clear UI
+
+      pluginData.forEach(plugin => {
+        const pluginCard = `
+          <div class="col-md-4 mb-3">
+            <div class="card animation-fade">
+              <div class="card-body">
+                <h5 class="card-title">${plugin.pluginName}</h5>
+                <p>${plugin.pluginDescription}</p>
+                <p><strong>Version:</strong> ${plugin.version}</p>
+                <p><strong>Plugin ID:</strong> ${plugin.pluginId}</p>
+                <button class="btn ${plugin.installed ? 'btn-danger' : 'btn-primary'}"
+                        id="plugin-${plugin.pluginId}"
+                        onclick="togglePluginInstallation(${plugin.pluginId}, '${plugin.folder}', '${plugin.pluginName}', '${plugin.pluginUrl}')">
+                  ${plugin.installed ? 'Uninstall' : 'Install'}
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        pluginList.innerHTML += pluginCard;
+      });
+    }
+
+    // Install/Uninstall Plugin
+    async function togglePluginInstallation(pluginId, folderName, pluginName, pluginUrl) {
+      try {
+        const plugin = plugins.find(p => p.pluginId === pluginId);
+        const installButton = document.getElementById(`plugin-${pluginId}`);
+
+        if (plugin.installed) {
+          // Uninstall Plugin
+          await axios.post('/api/plugins/uninstall', { pluginId });
+          plugin.installed = false;
+          installButton.innerText = 'Install';
+          installButton.classList.remove('btn-danger');
+          installButton.classList.add('btn-primary');
+        } else {
+          // Install Plugin
+          await axios.post('/api/plugins/install', { pluginId, folderName, pluginName, pluginUrl });
+          plugin.installed = true;
+          installButton.innerText = 'Uninstall';
+          installButton.classList.remove('btn-primary');
+          installButton.classList.add('btn-danger');
+        }
+
+        alert(`Plugin "${pluginName}" ${plugin.installed ? 'installed' : 'uninstalled'} successfully!`);
+        fetchPlugins(); // Refresh plugin list
+      } catch (error) {
+        console.error("Error installing/uninstalling plugin: ", error);
+        alert('Failed to install/uninstall plugin.');
+      }
+    }
+
+    // Fetch Plugins on Page Load
+    fetchPlugins();
+  </script>
+</body>
+</html>

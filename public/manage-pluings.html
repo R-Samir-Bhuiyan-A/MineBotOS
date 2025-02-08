@@ -1,0 +1,138 @@
+<!-- public/manage-plugins.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Manage Plugins for Bot</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .plugin-item { border: 1px solid #ccc; padding: 10px; margin: 5px; }
+    .plugin-enabled { background-color: #cfc; }
+    .plugin-disabled { background-color: #fcc; }
+  </style>
+</head>
+<body>
+  <h1>Manage Plugins for Bot</h1>
+  
+  <label for="botSelect">Select Bot:</label>
+  <select id="botSelect">
+    <option value="">-- Select a Bot --</option>
+  </select>
+  <button id="loadPlugins">Load Plugins</button>
+  
+  <hr>
+  
+  <div id="pluginList"></div>
+  
+  <hr>
+  <h2>Plugins UI</h2>
+  <div id="pluginUIContainer"></div>
+  
+  <script>
+    // Fetch the list of bots for the select menu
+    async function fetchBots() {
+      const res = await fetch('/api/bots');
+      const bots = await res.json();
+      const botSelect = document.getElementById('botSelect');
+      botSelect.innerHTML = '<option value="">-- Select a Bot --</option>';
+      bots.forEach(bot => {
+        const option = document.createElement('option');
+        option.value = bot.username;
+        option.textContent = bot.username + ' (' + bot.server + ':' + bot.port + ')';
+        botSelect.appendChild(option);
+      });
+    }
+  
+    // Fetch enabled plugins for a given bot
+    async function fetchEnabledPlugins(botUsername) {
+      const res = await fetch(`/api/bots/${botUsername}/plugins`);
+      const data = await res.json();
+      return data.enabledPlugins || [];
+    }
+  
+    // Fetch all available plugins from the server
+    async function fetchAllPlugins() {
+      const res = await fetch('/api/plugins');
+      const plugins = await res.json();
+      return plugins;
+    }
+  
+    // Update the enabled plugins for a bot
+    async function updateBotPlugins(botUsername, enabledPlugins) {
+      const res = await fetch(`/api/bots/${botUsername}/plugins`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabledPlugins })
+      });
+      return res.json();
+    }
+  
+    // Load and display the list of plugins with toggle buttons
+    async function loadPluginList() {
+      const botSelect = document.getElementById('botSelect');
+      const botUsername = botSelect.value;
+      if (!botUsername) {
+        alert('Please select a bot first.');
+        return;
+      }
+      const enabledPlugins = await fetchEnabledPlugins(botUsername);
+      const allPlugins = await fetchAllPlugins();
+      const pluginListDiv = document.getElementById('pluginList');
+      pluginListDiv.innerHTML = '';
+  
+      allPlugins.forEach(plugin => {
+        const div = document.createElement('div');
+        const isEnabled = enabledPlugins.includes(plugin.folder);
+        div.className = 'plugin-item ' + (isEnabled ? 'plugin-enabled' : 'plugin-disabled');
+        div.innerHTML = `
+          <strong>${plugin.name}</strong><br>
+          ${plugin.description}<br>
+          <button data-folder="${plugin.folder}" class="toggle-plugin">
+            ${isEnabled ? 'Disable' : 'Enable'}
+          </button>
+        `;
+        pluginListDiv.appendChild(div);
+      });
+  
+      // Load UI snippets for enabled plugins
+      loadPluginUI(enabledPlugins);
+    }
+  
+    // Load each enabled plugin's UI snippet into the container
+    async function loadPluginUI(enabledPlugins) {
+      const container = document.getElementById('pluginUIContainer');
+      container.innerHTML = '';
+      enabledPlugins.forEach(folder => {
+        const div = document.createElement('div');
+        div.innerHTML = `<iframe src="/plugins/${folder}/ui.html" style="width: 100%; height: 200px; border: none;"></iframe>`;
+        container.appendChild(div);
+      });
+    }
+  
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchBots();
+  
+      document.getElementById('loadPlugins').addEventListener('click', loadPluginList);
+  
+      // Listen for enable/disable button clicks
+      document.getElementById('pluginList').addEventListener('click', async (e) => {
+        if (e.target.classList.contains('toggle-plugin')) {
+          const folder = e.target.getAttribute('data-folder');
+          const botSelect = document.getElementById('botSelect');
+          const botUsername = botSelect.value;
+          let enabledPlugins = await fetchEnabledPlugins(botUsername);
+          if (enabledPlugins.includes(folder)) {
+            // Remove (disable) plugin
+            enabledPlugins = enabledPlugins.filter(p => p !== folder);
+          } else {
+            // Add (enable) plugin
+            enabledPlugins.push(folder);
+          }
+          await updateBotPlugins(botUsername, enabledPlugins);
+          loadPluginList();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

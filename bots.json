@@ -1,0 +1,20 @@
+[
+  {
+    "username": "Test",
+    "server": "astcart.shop",
+    "port": 25565,
+    "version": "1.20.1",
+    "password": "Samir",
+    "enabledPlugins": []
+  },
+  {
+    "username": "Test2",
+    "server": "Astcart.shop",
+    "port": 25565,
+    "version": "1.21.1",
+    "password": "77889900",
+    "enabledPlugins": [
+      "Test"
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+{
+    "name": "Sample Plugin",
+    "description": "Responds to chat commands like !hello",
+    "icon": "🙂",
+    "color": "#ffcc00",
+    "alwaysLoaded": true,
+    "ui": "ui.html"
+  }
+  

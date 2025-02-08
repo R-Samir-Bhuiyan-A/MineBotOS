@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mineclayer Bot Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Use a Bootswatch dark theme (Darkly) for a modern dark UI -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.0/dist/darkly/bootstrap.min.css">
+  <!-- Include Animate.css for smooth animations -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <style>
+    body { 
+      padding-top: 70px; 
+      background-color: #121212;
+    }
+    .card { 
+      border-radius: 0.5rem; 
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .plugin-card { margin-bottom: 20px; }
+    #pluginContent iframe { 
+      border: none; 
+      border-radius: 0.5rem; 
+    }
+    .nav-plugin { margin-right: 15px; }
+    .navbar-nav .nav-link { color: #ffffff !important; }
+    .card-header { background-color: #1f1f1f; color: #ffffff; }
+    .card-body { background-color: #1a1a1a; color: #ffffff; }
+    /* Custom button colors */
+    .btn-primary { background-color: #BB86FC; border: none; }
+    .btn-primary:hover { background-color: #9a67ea; }
+    .btn-success { background-color: #03DAC6; border: none; }
+    .btn-success:hover { background-color: #02c5b4; }
+    .btn-danger { background-color: #cf6679; border: none; }
+    .btn-danger:hover { background-color: #b45566; }
+    /* Smooth transitions for interactive elements */
+    .card, .btn, .nav-link { transition: all 0.3s ease; }
+  </style>
+</head>
+<body>
+  <!-- Fixed Dark Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Bot Manager</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarPlugin" aria-controls="navbarPlugin" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarPlugin">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0" id="pluginNavbar">
+          <!-- Dynamically populated plugin nav links will appear here -->
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mt-4">
+    <h1 class="mb-4 text-center animate__animated animate__fadeInDown">Mineclayer Bot Manager</h1>
+    
+    <!-- Bot Creation Section -->
+    <div class="card mb-4 animate__animated animate__fadeInUp">
+      <div class="card-header">Add New Bot</div>
+      <div class="card-body">
+        <form id="botForm">
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" name="username" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Server</label>
+              <input type="text" class="form-control" name="server" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Port</label>
+              <input type="number" class="form-control" name="port" value="25565" required>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label">Version</label>
+              <input type="text" class="form-control" name="version" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Password (for /login)</label>
+              <input type="text" class="form-control" name="password">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Enabled Plugins (comma-separated)</label>
+              <input type="text" class="form-control" name="enabledPlugins" placeholder="e.g., samplePlugin">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add Bot</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Bot List Section -->
+    <div class="card mb-4 animate__animated animate__fadeInUp">
+      <div class="card-header">Bot List</div>
+      <div class="card-body" id="bots">
+        <!-- Bot list will be loaded dynamically here -->
+      </div>
+    </div>
+    
+    <!-- Plugin Configuration Section -->
+    <div class="card mb-4 animate__animated animate__fadeInUp">
+      <div class="card-header">Configure Bot Plugins</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label for="botSelect" class="form-label">Select Bot:</label>
+          <select class="form-select" id="botSelect">
+            <option value="">-- Select a Bot --</option>
+          </select>
+        </div>
+        <button id="loadBotPlugins" class="btn btn-secondary mb-3">Load Bot Plugins</button>
+        <div class="row" id="pluginCards">
+          <!-- Plugin cards will be loaded dynamically here -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Plugin UI Content Section -->
+    <div class="card mb-4 animate__animated animate__fadeInUp">
+      <div class="card-header">Plugin UI Content</div>
+      <div class="card-body" id="pluginContent">
+        <!-- Plugin UI content will be loaded dynamically here -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Custom Script -->
+  <script>
+    // Helper function to perform API calls and return JSON
+    async function fetchJSON(url, options = {}) {
+      const res = await fetch(url, options);
+      return res.json();
+    }
+    
+    // -----------------------------
+    // Bot Management Functions
+    // -----------------------------
+    async function fetchBots() {
+      const bots = await fetchJSON('/api/bots');
+      const botsContainer = document.getElementById('bots');
+      botsContainer.innerHTML = '';
+      const botSelect = document.getElementById('botSelect');
+      botSelect.innerHTML = '<option value="">-- Select a Bot --</option>';
+      bots.forEach(bot => {
+        // Create a responsive card for each bot
+        const botCard = document.createElement('div');
+        botCard.className = 'card mb-2 animate__animated animate__fadeInUp';
+        botCard.innerHTML = `
+          <div class="card-body">
+            <h5 class="card-title">${bot.username}</h5>
+            <p class="card-text">${bot.server}:${bot.port}</p>
+            <button class="btn btn-success btn-sm" onclick="startBot('${bot.username}')">Start</button>
+            <button class="btn btn-danger btn-sm" onclick="stopBot('${bot.username}')">Stop</button>
+          </div>
+        `;
+        botsContainer.appendChild(botCard);
+        
+        // Populate the bot selection drop-down
+        const option = document.createElement('option');
+        option.value = bot.username;
+        option.textContent = `${bot.username} (${bot.server}:${bot.port})`;
+        botSelect.appendChild(option);
+      });
+    }
+    
+    async function startBot(username) {
+      await fetchJSON('/api/bots/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      fetchBots();
+    }
+    
+    async function stopBot(username) {
+      await fetchJSON('/api/bots/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      fetchBots();
+    }
+    
+    document.getElementById('botForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const config = {
+        username: formData.get('username'),
+        server: formData.get('server'),
+        port: parseInt(formData.get('port'), 10),
+        version: formData.get('version'),
+        password: formData.get('password'),
+        enabledPlugins: formData.get('enabledPlugins')
+          .split(',')
+          .map(p => p.trim())
+          .filter(p => p)
+      };
+      await fetchJSON('/api/bots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(config)
+      });
+      e.target.reset();
+      fetchBots();
+    });
+    
+    // -----------------------------
+    // Plugin Management Functions
+    // -----------------------------
+    async function fetchAllPlugins() {
+      return await fetchJSON('/api/plugins');
+    }
+    
+    async function fetchEnabledPlugins(botUsername) {
+      if (!botUsername) return [];
+      const data = await fetchJSON(`/api/bots/${botUsername}/plugins`);
+      return data.enabledPlugins || [];
+    }
+    
+    async function updateBotPlugins(botUsername, enabledPlugins) {
+      await fetchJSON(`/api/bots/${botUsername}/plugins`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabledPlugins })
+      });
+    }
+    
+    async function loadPluginCards() {
+      const botSelect = document.getElementById('botSelect');
+      const botUsername = botSelect.value;
+      if (!botUsername) {
+        alert('Please select a bot first.');
+        return;
+      }
+      const enabledPlugins = await fetchEnabledPlugins(botUsername);
+      const allPlugins = await fetchAllPlugins();
+      const cardsContainer = document.getElementById('pluginCards');
+      cardsContainer.innerHTML = '';
+      
+      allPlugins.forEach(plugin => {
+        const isEnabled = enabledPlugins.includes(plugin.folder);
+        const cardCol = document.createElement('div');
+        cardCol.className = 'col-md-4 mb-3';
+        cardCol.innerHTML = `
+          <div class="card plugin-card ${isEnabled ? 'border-success' : 'border-danger'} animate__animated animate__fadeInUp">
+            <div class="card-body">
+              <h5 class="card-title">${plugin.name}</h5>
+              <p class="card-text">${plugin.description}</p>
+              <button data-folder="${plugin.folder}" class="btn ${isEnabled ? 'btn-danger' : 'btn-success'} toggle-plugin">
+                ${isEnabled ? 'Disable' : 'Enable'}
+              </button>
+            </div>
+          </div>
+        `;
+        cardsContainer.appendChild(cardCol);
+      });
+      
+      updatePluginNavbar(enabledPlugins);
+    }
+    
+    function updatePluginNavbar(enabledPlugins) {
+      const navbar = document.getElementById('pluginNavbar');
+      navbar.innerHTML = '';
+      if (enabledPlugins.length === 0) {
+        navbar.innerHTML = '<li class="nav-item"><span class="nav-link">No plugins enabled</span></li>';
+        return;
+      }
+      enabledPlugins.forEach(folder => {
+        const li = document.createElement('li');
+        li.className = 'nav-item';
+        const a = document.createElement('a');
+        a.className = 'nav-link';
+        a.href = "#";
+        a.textContent = folder;
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          loadPluginUI(folder);
+        });
+        li.appendChild(a);
+        navbar.appendChild(li);
+      });
+    }
+        async function loadPluginUI(pluginFolder) {
+      const container = document.getElementById('pluginContent');
+      container.innerHTML = `<iframe src="/${pluginFolder}" style="width: 100%; height: 400px;" class="animate__animated animate__fadeIn"></iframe>`;
+    }
+    
+    document.getElementById('pluginCards').addEventListener('click', async (e) => {
+      if (e.target.classList.contains('toggle-plugin')) {
+        const folder = e.target.getAttribute('data-folder');
+        const botUsername = document.getElementById('botSelect').value;
+        let enabledPlugins = await fetchEnabledPlugins(botUsername);
+        if (enabledPlugins.includes(folder)) {
+          enabledPlugins = enabledPlugins.filter(p => p !== folder);
+        } else {
+          enabledPlugins.push(folder);
+        }
+        await updateBotPlugins(botUsername, enabledPlugins);
+        loadPluginCards();
+      }
+    });
+    
+    document.getElementById('loadBotPlugins').addEventListener('click', loadPluginCards);
+    
+    // Initial load
+    fetchBots();
+  </script>
+</body>
+</html>
